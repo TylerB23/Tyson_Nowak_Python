@@ -1,0 +1,78 @@
+# Recreating my model attempt in xpp
+# NOTE: This works best when setting the numerical method to Stiff
+
+@ METH=stiff, XLO=0, XHI=500, YLO=-.2, YHI=6, TOTAL=500, DTMIN=1e-012
+@ TOLER=1e-005
+
+BB(Va,Vi,Ja,Ji)= Vi-Va+Ja*Vi+Ji*Va
+GK(Va,Vi,Ja,Ji)= 2*Ji*Va/(BB(Va,Vi,Ja,Ji)+sqrt(BB(Va,Vi,Ja,Ji)^2-4*(Vi-Va)*Ji*Va))
+
+TRIMER(CYCBT,CKIT)= (2*CYCBT*CKIT)/(CYCBT+CKIT+Keq^(-1)+sqrt((CYCBT+CKIT+Keq^(-1))^2-4*CYCBT*CKIT))
+
+CYCB(CYCBT,CKIT)= CYCBT - TRIMER(CYCBT, CKIT)
+#aux CYCB=CYCB
+
+TF(M,SK,CYCBT,CKIT)=GK(k15p*M+k15pp*SK,k16p+k16pp*M*CYCB(CYCBT,CKIT),J15,J16)
+
+# DIFFERENTIAL EQUATIONS
+
+dM/dt = mu*M*(1-M/mstar)
+
+dCYCBT/dt = k1-(k2p+k2pp*CDH1+k2ppp*CDC20A)*CYCBT
+
+dCKIT/dt = k11-(k12p+k12pp*SK+k12ppp*M*CYCB(CYCBT,CKIT))*CKIT
+
+dSK/dt = k13*TF(M,SK,CYCBT,CKIT)-k14*SK
+
+dCDH1/dt = ((k3p+k3pp*CDC20A)*(1-CDH1))/(J3+1-CDH1)-((k4*M*CYCB(CYCBT,CKIT)*CDH1)/(J4+CDH1))
+
+dCDC20T/dt = k5p+k5pp*((CYCB(CYCBT,CKIT)*(M/J5))^n)/((1+(CYCB(CYCBT,CKIT)*(M/J5)))^n)-k6*CDC20T
+
+dCDC20A/dt = ((k7*IEP*(CDC20T-CDC20A))/(J7+CDC20T-CDC20A))-((k8*Mad*CDC20A)/(J8+CDC20A))-k6*CDC20A
+
+dIEP/dt = k9*M*CYCB(CYCBT,CKIT)*(1-IEP)-k10*IEP
+
+#PARAMETERS
+param k1=0.04,  k2p=0.04,   k2pp=1
+
+param k2ppp=1,  k3p=1,      k3pp=10
+
+param k4=35,    k4p=2,      k5p=0.005
+
+param k5pp=0.2, k6=0.1,     k7=1
+
+param k8=0.1,   k9=0.1,     k10=0.02
+
+param k11=1,    k12p=0.2,   k12pp=50
+
+param k12ppp=100,           k13=1
+
+param k14=1,    k15p=1.5,   k15pp=0.05
+
+param k16p=1,   k16pp=3
+
+param J3=0.04,  J4=0.04,    J5=0.3
+
+param J7=0.001, J8=0.001,   J15=0.01 
+
+param J16=0.01, Keq=1000,   n=4
+
+param Mad=1,    mu=0.01,    mstar=10
+
+param CYCBTHRESH=0.1
+
+#GLOBALS    
+global 1 {CYCBTHRESH-CYCBT} {M=0.5*M}
+#global 1 {CDH1-1} {CDH1=1}
+#global -1 {CDH1} {CDH1=0}
+
+#INITIALIZATIONS    
+
+INIT CYCBT=0.6
+INIT CDH1=0.05
+INIT CDC20T=1.6
+INIT CDC20A=0.6
+INIT IEP=0.5
+INIT M=5
+
+done
